@@ -7,8 +7,14 @@
 # Ignore the /build Folder
 /build
 
+# Ignore the cmake-build-debug Folder
+cmake-build-debug
+
 # Ignore the .vs Folder
 .vs
 
 # Ignore the /out Folder
 /out
+
+# Ignore the .idea Folder
+.idea

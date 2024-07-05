@@ -3,9 +3,11 @@
 
 #if defined(__APPLE__)
 #include <ApplicationServices/ApplicationServices.h>
+#include <Cocoa/Cocoa.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "../../include/utils/badDyLib.h"
+#include "../include/badDyLib.h"
 
 
 void* CreateSimpleWindow(void* arg)
@@ -33,7 +35,7 @@ void* CreateSimpleWindow(void* arg)
 
 void LaunchCalculator()
 {
-    system(open -a Calculator);
+    //system(open -a Calculator);
 }
 
 __attribute__((constructor))
