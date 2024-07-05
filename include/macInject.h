@@ -11,6 +11,7 @@
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <dlfcn.h>
+#include <sys/sysctl.h>
 
 struct Result
 {
@@ -27,11 +28,11 @@ public:
 
     const char* m_dylibName;
     const char* m_processName;
-    mach_port_t m_targeTask;
+    mach_port_t m_targetTask;
     mach_vm_address_t m_pathAddress;
     void* m_dlopenAddress;
-    char m_fullDylibPath[PATH_MAX];
-    
+    char m_fullDylibPath[PATH_MAX]{};
+
     Result FindProcessId(const char* processName, pid_t& processId);
     Result OpenProcessHandle(pid_t processId);
     Result AllocateAndWriteMemory();

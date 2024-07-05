@@ -1,9 +1,11 @@
+#include <iomanip>
 #include "../../include/macInject.h"
 
 #if defined(__APPLE__)
 MacInject::MacInject(const char* dylibName, const char* processName)
-    : m_dylibName(dylibName), m_processName(processName), m_targetProcess(0), m_pathAddress(nullptr), m_dlopenAddress(nullptr)
+        : m_dylibName(dylibName), m_processName(processName), m_targetTask(0), m_pathAddress(0), m_dlopenAddress(nullptr)
 {
+    memset(m_fullDylibPath, 0, sizeof(m_fullDylibPath));
 }
 
 MacInject::~MacInject()
@@ -13,9 +15,9 @@ MacInject::~MacInject()
         mach_vm_deallocate(m_targetTask, m_pathAddress, strlen(m_fullDylibPath) + 1);
     }
 
-    if (m_targeTask != MACH_PORT_NULL)
+    if (m_targetTask != MACH_PORT_NULL)
     {
-        mach_port_deallocate(mach_task_self(), m_targeTask);
+        mach_port_deallocate(mach_task_self(), m_targetTask);
     }
 }
 
@@ -24,7 +26,7 @@ std::vector<Result> MacInject::InjectDylib()
     std::vector<Result> results;
     pid_t processId;
 
-    resuls.push_back(FindProcessId(m_processName, processId));
+    results.push_back(FindProcessId(m_processName, processId));
     if (!results.back().success)
     {
         return results;
@@ -66,24 +68,45 @@ std::vector<Result> MacInject::InjectDylib()
 
 Result MacInject::FindProcessId(const char* processName, pid_t& processId)
 {
-    std::ostringstream cmd;
-    cmd << "pgrep " << processName;
-    FILE* pipe = popen(cmd.str().c_str(), "r");
-    if (pipe == nullptr)
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
+    size_t size;
+
+    if (sysctl(mib, 4, NULL, &size, NULL, 0) == -1)
     {
-        return { false, "Failed to execute pgrep" };
+        return { false, "Failed to get the size of the process list: " + std::string(strerror(errno)) };
     }
 
-    char buffer[128];
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    struct kinfo_proc* procList = (struct kinfo_proc*)malloc(size);
+    if (procList == nullptr)
     {
-        processId = atoi(buffer);
-        pclose(pipe);
-        return { true, "Found process ID: " + std::string(processName) + ", PID: " + std::to_string(processId) };
+        return { false, "Failed to allocate memory for the process list" };
     }
 
-    pclose(pipe);
-    return { false, "Failed to find process ID: " + std::string(processName) };
+    if (sysctl(mib, 4, procList, &size, NULL, 0) == -1)
+    {
+        free(procList);
+        return { false, "Failed to get the process list: " + std::string(strerror(errno)) };
+    }
+
+    bool found = false;
+    for (size_t i = 0; i < size / sizeof(struct kinfo_proc); i++)
+    {
+        if (strcmp(procList[i].kp_proc.p_comm, processName) == 0)
+        {
+            processId = procList[i].kp_proc.p_pid;
+            found = true;
+            break;
+        }
+    }
+
+    free(procList);
+
+    if (!found)
+    {
+        return { false, "Failed to find the process: " + std::string(processName) };
+    }
+
+    return { true, "Found the process: " + std::string(processName) + " with PID: " + std::to_string(processId) };
 }
 
 Result MacInject::OpenProcessHandle(pid_t processId)
@@ -131,26 +154,26 @@ Result MacInject::GetDlopenAddress()
 Result MacInject::CreateRemoteThreadToLoadDylib()
 {
     thread_act_t thread;
-    x86_thread_state64_t state;
-    mach_msg_type_number_t stateCount = x86_THREAD_STATE64_COUNT;
+    arm_thread_state64_t state;
+    mach_msg_type_number_t stateCount = ARM_THREAD_STATE64_COUNT;
 
     memset(&state, 0, sizeof(state));
-    state.__rip = (uint64_t)m_dlopenAddress;
-    state.__rdi = (uint64_t)m_pathAddress;
-    state.__rsi = RTLD_NOW;
+    state.__x[0] = (uint64_t)m_dlopenAddress;
+    state.__x[1] = (uint64_t)m_pathAddress;
+    state.__pc = (uint64_t)dlopen;
 
-    kern_return_t kr = thread_create_running(m_targetTask, x86_THREAD_STATE64, (thread_state_t)&state, stateCount, &thread);
+    kern_return_t kr = thread_create_running(m_targetTask, ARM_THREAD_STATE, (thread_state_t)&state, stateCount, &thread);
     if (kr != KERN_SUCCESS)
     {
         mach_vm_deallocate(m_targetTask, m_pathAddress, strlen(m_fullDylibPath) + 1);
         return { false, "Failed to create a remote thread" };
     }
 
-    mach_msg_type_number_t thread_state_count = x86_THREAD_STATE64_COUNT;
+    mach_msg_type_number_t thread_state_count = ARM_THREAD_STATE64_COUNT;
     while (true)
     {
-        kr = thread_get_state(thread, x86_THREAD_STATE64, (thread_state_t)&state, &thread_state_count);
-        if (kr != KERN_SUCCESS || state.__rax != 0)
+        kr = thread_get_state(thread, ARM_THREAD_STATE64, (thread_state_t)&state, &thread_state_count);
+        if (kr != KERN_SUCCESS || state.__pc == 0)
         {
             break;
         }
