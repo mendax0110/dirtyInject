@@ -16,6 +16,9 @@ void CreateSimpleWindow()
 {
 }
 
+/**
+ * @brief This function is responsible for handling the injection process
+ */
 void HandleInjection()
 {
     char exePath[PATH_MAX];
@@ -47,6 +50,9 @@ void HandleInjection()
     dlclose(handle);
 }
 
+/**
+ * @brief This is the entry point for the shared object
+ */
 extern "C" void* __attribute__((constructor)) DllMain()
 {
     {

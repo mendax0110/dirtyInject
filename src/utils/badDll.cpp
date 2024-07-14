@@ -8,6 +8,14 @@
 #include <codecvt>
 #include <locale>
 
+/**
+ * @brief The window procedure for the injected window
+ * @param hwnd -> The handle to the window
+ * @param uMsg -> The message
+ * @param wParam -> The message parameter
+ * @param lParam -> The message parameter
+ * @return LRESULT -> The result of the message processing
+ */
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -20,6 +28,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 }
 
+/**
+ * @brief Create a Simple Window object
+ */
 void CreateSimpleWindow()
 {
     const char CLASS_NAME[] = "InjectedWindowClass";
@@ -64,12 +75,24 @@ void CreateSimpleWindow()
     }
 }
 
+/**
+ * @brief The thread function for the window
+ * @param lpParam -> The thread parameters
+ * @return DWORD -> The thread return value
+ */
 DWORD WINAPI WindowThread(LPVOID lpParam)
 {
     CreateSimpleWindow();
     return 0;
 }
 
+/**
+ * @brief The entry point for the DLL
+ * @param hModule -> The handle to the DLL module
+ * @param ul_reason_for_call -> reason for calling the DLL
+ * @param lpReserved -> reserved parameter
+ * @return BOOL -> The result of the operation
+ */
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)

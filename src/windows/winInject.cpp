@@ -1,9 +1,18 @@
 #include "../../include/winInject.h"
 
 #if defined(_WIN32) || defined(_WIN64)
+
+/**
+ * @brief Construct a new Win Inject:: Win Inject object
+ * @param dllName -> The name of the DLL to inject
+ * @param processName -> The name of the process to inject the DLL into
+ */
 WinInject::WinInject(const char* dllName, const char* processName)
     : m_dllName(dllName), m_processName(processName), m_tragetProcess(nullptr), m_pathAddress(nullptr), m_loadLibraryAddress(nullptr) {}
 
+/**
+ * @brief Destroy the Win Inject:: Win Inject object
+ */
 WinInject::~WinInject()
 {
     if (m_pathAddress != nullptr)
@@ -17,6 +26,10 @@ WinInject::~WinInject()
     }
 }
 
+/**
+ * @brief Injects the DLL into the target process
+ * @return std::vector<Result> -> A vector of results for each step of the injection process
+ */
 std::vector<Result> WinInject::InjectDll()
 {
     std::vector<Result> results;
@@ -63,6 +76,12 @@ std::vector<Result> WinInject::InjectDll()
     return results;
 }
 
+/**
+ * @brief Finds the process ID of the target process
+ * @param processName -> The name of the target process
+ * @param processId -> The process ID of the target process
+ * @return Result -> The result of the operation
+ */
 Result WinInject::FindProcessId(const char* processName, DWORD& processId)
 {
     PROCESSENTRY32 processEntry = {};
@@ -91,6 +110,11 @@ Result WinInject::FindProcessId(const char* processName, DWORD& processId)
     return { false, "Process not found: " + std::string(processName) };
 }
 
+/**
+ * @brief Opens a handle to the target process
+ * @param processId -> The process ID of the target process
+ * @return Result -> The result of the operation
+ */
 Result WinInject::OpenProcessHandle(DWORD processId)
 {
     m_tragetProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
@@ -102,6 +126,10 @@ Result WinInject::OpenProcessHandle(DWORD processId)
     return { true, "Process handle opened successfully" };
 }
 
+/**
+ * @brief Allocates memory in the target process and writes the DLL path to it
+ * @return Result -> The result of the operation
+ */
 Result WinInject::AllocateAndWriteMemory()
 {
     size_t dllPathLength = strlen(m_fullDllPath) + 1;
@@ -128,6 +156,10 @@ Result WinInject::AllocateAndWriteMemory()
     return { true, memoryAllocatedMessage.str() + "\n" + memoryWrittenMessage.str() };
 }
 
+/**
+ * @brief This function gets the address of the LoadLibraryA function from kernel32.dll
+ * @return Result -> The result of the operation
+ */
 Result WinInject::GetLoadLibraryAddress()
 {
     HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
@@ -148,6 +180,10 @@ Result WinInject::GetLoadLibraryAddress()
     return { true, loadLibraryAddressMessage.str() };
 }
 
+/**
+ * @brief This function creates a remote thread in the target process to load the DLL
+ * @return Result -> The result of the operation
+ */
 Result WinInject::CreateRemoteThreadToLoadLibrary()
 {
     HANDLE threadHandle = CreateRemoteThread(m_tragetProcess, nullptr, 0, (LPTHREAD_START_ROUTINE)m_loadLibraryAddress, m_pathAddress, 0, nullptr);
@@ -166,6 +202,10 @@ Result WinInject::CreateRemoteThreadToLoadLibrary()
     return { true, remoteThreadMessage.str() };
 }
 
+/**
+ * @brief This function prints the results of the injection process
+ * @param results -> The results of the injection process
+ */
 void WinInject::PrintResults(const std::vector<Result>& results)
 {
     for (const auto& result : results)
@@ -174,6 +214,12 @@ void WinInject::PrintResults(const std::vector<Result>& results)
     }
 }
 
+/**
+ * @brief This function converts a block of memory to a hex dump string
+ * @param data -> The block of memory
+ * @param size -> The size of the block of memory
+ * @return std::string -> The hex dump string
+ */
 std::string WinInject::HexDump(const void* data, size_t size)
 {
     std::ostringstream oss;

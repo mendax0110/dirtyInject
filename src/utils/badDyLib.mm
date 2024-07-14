@@ -9,7 +9,11 @@
 #include <unistd.h>
 #include "../include/badDyLib.h"
 
-
+/**
+ * @brief Create a simple window using Cocoa
+ * @param arg -> void*
+ * @return void* -> nullptr
+ */
 void* CreateSimpleWindow(void* arg)
 {
     @autoreleasepool
@@ -33,11 +37,17 @@ void* CreateSimpleWindow(void* arg)
     return nullptr;
 }
 
+/**
+ * @brief Launch the calculator application
+ */
 void LaunchCalculator()
 {
     //system(open -a Calculator);
 }
 
+/**
+ * @brief Entry point for the dynamic library
+ */
 __attribute__((constructor))
 void DllMain()
 {

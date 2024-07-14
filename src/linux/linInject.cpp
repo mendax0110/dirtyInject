@@ -13,11 +13,19 @@
 #include <fcntl.h>
 #include <dlfcn.h>
 
+/**
+ * @brief Construct a new Lin Inject:: Lin Inject object
+ * @param dllName -> The name of the DLL to inject
+ * @param processName -> The name of the process to inject the DLL into
+ */
 LinInject::LinInject(const char* dllName, const char* processName)
     : m_dllName(dllName), m_processName(processName), m_targetProcess(0), m_pathAddress(nullptr), m_dlopenAddress(nullptr)
 {
 }
 
+/**
+ * @brief Destroy the Lin Inject:: Lin Inject object
+ */
 LinInject::~LinInject()
 {
     if (m_pathAddress != nullptr)
@@ -26,6 +34,10 @@ LinInject::~LinInject()
     }
 }
 
+/**
+ * @brief Injects the shared object into the target process
+ * @return std::vector<Result> -> A vector of results for each step of the injection process
+ */
 std::vector<Result> LinInject::InjectSo()
 {
     std::vector<Result> results;
@@ -65,6 +77,12 @@ std::vector<Result> LinInject::InjectSo()
     return results;
 }
 
+/**
+ * @brief Find the process ID of the target process
+ * @param processName -> The name of the target process
+ * @param processId -> The process ID of the target process
+ * @return std::vector<Result> -> A vector of results for each step of the operation
+ */
 std::vector<Result> LinInject::FindProcessId(const char* processName, pid_t& processId)
 {
     std::vector<Result> results;
@@ -77,12 +95,21 @@ std::vector<Result> LinInject::FindProcessId(const char* processName, pid_t& pro
     return results;
 }
 
+/**
+ * @brief Open a handle to the target process
+ * @param processId -> The process ID of the target process
+ * @return Result -> The result of the operation
+ */
 Result LinInject::OpenProcessHandle(pid_t processId)
 {
     m_targetProcess = processId;
     return {true, "Process handle opened successfully"};
 }
 
+/**
+ * @brief Allocate memory in the target process and write the DLL path to it
+ * @return Result -> The result of the operation
+ */
 Result LinInject::AllocateAndWriteMemory()
 {
     m_pathAddress = mmap(0, sizeof(m_dllName) + 1, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -102,6 +129,10 @@ Result LinInject::AllocateAndWriteMemory()
     return {true, memoryAllocatedMessage.str() + "\n" + memoryWrittenMessage.str()};
 }
 
+/**
+ * @brief Get the address of the dlopen function in the target process
+ * @return Result -> The result of the operation
+ */
 Result LinInject::GetDlopenAddress()
 {
     m_dlopenAddress = dlsym(RTLD_NEXT, "dlopen");
@@ -116,6 +147,10 @@ Result LinInject::GetDlopenAddress()
     return {true, dlopenAddressMessage.str()};
 }
 
+/**
+ * @brief Inject the shared library into the target process
+ * @return Result -> The result of the operation
+ */
 Result LinInject::InjectSharedLibrary()
 {
     std::ostringstream command;
@@ -130,6 +165,10 @@ Result LinInject::InjectSharedLibrary()
     return {true, "Shared library injected successfully"};
 }
 
+/**
+ * @brief Print the results of the injection process
+ * @param results -> The results of the injection process
+ */
 void LinInject::PrintResults(const std::vector<Result>& results)
 {
     for (const auto& result : results)
@@ -138,6 +177,12 @@ void LinInject::PrintResults(const std::vector<Result>& results)
     }
 }
 
+/**
+ * @brief Convert a block of memory to a hex string
+ * @param data -> The block of memory
+ * @param size -> The size of the block of memory
+ * @return std::string -> The hex string
+ */
 std::string LinInject::HexDump(const void* data, size_t size)
 {
     std::ostringstream dump;

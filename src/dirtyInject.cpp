@@ -2,6 +2,12 @@
 #include "../include/linInject.h"
 #include "../include/macInject.h"
 
+/**
+ * @brief This is the main entry point for the application
+ * @param argc -> The number of command line arguments
+ * @param argv -> The command line arguments
+ * @return int -> The exit code of the application
+ */
 int main(int argc, char* argv[])
 {
     if (argc != 3)

@@ -2,12 +2,21 @@
 #include "../../include/macInject.h"
 
 #if defined(__APPLE__)
+
+/**
+ * @brief Construct a new Mac Inject:: Mac Inject object
+ * @param dylibName -> The name of the dylib to inject
+ * @param processName -> The name of the process to inject the dylib into
+ */
 MacInject::MacInject(const char* dylibName, const char* processName)
         : m_dylibName(dylibName), m_processName(processName), m_targetTask(0), m_pathAddress(0), m_dlopenAddress(nullptr)
 {
     memset(m_fullDylibPath, 0, sizeof(m_fullDylibPath));
 }
 
+/**
+ * @brief Destroy the Mac Inject:: Mac Inject object
+ */
 MacInject::~MacInject()
 {
     if (m_pathAddress != 0)
@@ -21,6 +30,10 @@ MacInject::~MacInject()
     }
 }
 
+/**
+ * @brief Injects the dylib into the target process
+ * @return std::vector<Result> -> A vector of results for each step of the injection process
+ */
 std::vector<Result> MacInject::InjectDylib()
 {
     std::vector<Result> results;
@@ -66,6 +79,12 @@ std::vector<Result> MacInject::InjectDylib()
     return results;
 }
 
+/**
+ * @brief Finds the process ID of the target process
+ * @param processName -> The name of the target process
+ * @param processId -> The process ID of the target process
+ * @return Result -> The result of the operation
+ */
 Result MacInject::FindProcessId(const char* processName, pid_t& processId)
 {
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
@@ -109,6 +128,11 @@ Result MacInject::FindProcessId(const char* processName, pid_t& processId)
     return { true, "Found the process: " + std::string(processName) + " with PID: " + std::to_string(processId) };
 }
 
+/**
+ * @brief Opens a handle to the target process
+ * @param processId -> The process ID of the target process
+ * @return Result -> The result of the operation
+ */
 Result MacInject::OpenProcessHandle(pid_t processId)
 {
     kern_return_t kr = task_for_pid(mach_task_self(), processId, &m_targetTask);
@@ -120,6 +144,10 @@ Result MacInject::OpenProcessHandle(pid_t processId)
     return { true, "Opened process handle successfully" };
 }
 
+/**
+ * @brief Allocates memory in the target process and writes the dylib path to it
+ * @return Result -> The result of the operation
+ */
 Result MacInject::AllocateAndWriteMemory()
 {
     mach_vm_address_t address;
@@ -140,6 +168,10 @@ Result MacInject::AllocateAndWriteMemory()
     return { true, "Allocated and wrote memory successfully" };
 }
 
+/**
+ * @brief Gets the address of the dlopen function in the target process
+ * @return Result -> The result of the operation
+ */
 Result MacInject::GetDlopenAddress()
 {
     m_dlopenAddress = dlsym(RTLD_DEFAULT, "dlopen");
@@ -151,6 +183,10 @@ Result MacInject::GetDlopenAddress()
     return { true, "Got the address of dlopen successfully"  + std::to_string(reinterpret_cast<uintptr_t>(m_dlopenAddress)) };
 }
 
+/**
+ * @brief Creates a remote thread in the target process to load the dylib
+ * @return Result -> The result of the operation
+ */
 Result MacInject::CreateRemoteThreadToLoadDylib()
 {
     thread_act_t thread;
@@ -183,7 +219,10 @@ Result MacInject::CreateRemoteThreadToLoadDylib()
     return { true, "Created remote thread successfully and dylib was injected" };
 }
 
-
+/**
+ * @brief Prints the results of the injection process
+ * @param results -> The results of the injection process
+ */
 void MacInject::PrintResults(const std::vector<Result>& results)
 {
     for (const Result& result : results)
@@ -192,6 +231,12 @@ void MacInject::PrintResults(const std::vector<Result>& results)
     }
 }
 
+/**
+ * @brief Converts a block of memory to a hex string
+ * @param data -> The block of memory
+ * @param size -> The size of the block of memory
+ * @return std::string -> The hex string
+ */
 std::string MacInject::HexDump(const void* data, size_t size)
 {
     std::ostringstream oss;
