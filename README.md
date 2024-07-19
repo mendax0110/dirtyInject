@@ -2,6 +2,9 @@
 
 **dirtyInject** is a command-line tool designed for injecting DLLs into Windows processes or SO libraries into Linux processes. It supports Windows, Linux and macOS environments and provides a straightforward interface for injecting malicious code (for testing and research purposes only).
 
+## Demo Picture
+<img width="1891" alt="SimpleWInInject" src="https://github.com/user-attachments/assets/f8576a42-285f-4dce-ac36-d930b95906fa">
+
 ## Usage
 
 To use **dirtyInject**, follow these steps:
