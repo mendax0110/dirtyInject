@@ -3,10 +3,13 @@
 #include <sstream>
 #include <cstring>
 #include <cstdlib>
+#include <cstdint>
+#include <iomanip>
 
 #if defined(__linux__)
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <sys/user.h>
@@ -19,7 +22,7 @@
  * @param processName -> The name of the process to inject the DLL into
  */
 LinInject::LinInject(const char* dllName, const char* processName)
-    : m_dllName(dllName), m_processName(processName), m_targetProcess(0), m_pathAddress(nullptr), m_dlopenAddress(nullptr)
+    : m_soName(dllName), m_processName(processName), m_targetProcess(0), m_pathAddress(nullptr), m_dlopenAddress(nullptr)
 {
 }
 
@@ -30,7 +33,7 @@ LinInject::~LinInject()
 {
     if (m_pathAddress != nullptr)
     {
-        munmap(m_pathAddress, sizeof(m_dllName) + 1);
+        munmap(m_pathAddress, sizeof(m_soName) + 1);
     }
 }
 
@@ -112,7 +115,7 @@ Result LinInject::OpenProcessHandle(pid_t processId)
  */
 Result LinInject::AllocateAndWriteMemory()
 {
-    m_pathAddress = mmap(0, sizeof(m_dllName) + 1, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    m_pathAddress = mmap(0, sizeof(m_soName) + 1, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (m_pathAddress == MAP_FAILED)
     {
         return {false, "Failed to allocate memory in the process"};
@@ -121,10 +124,10 @@ Result LinInject::AllocateAndWriteMemory()
     std::ostringstream memoryAllocatedMessage;
     memoryAllocatedMessage << "Memory allocated at: " << std::hex << reinterpret_cast<uintptr_t>(m_pathAddress);
 
-    strcpy((char*)m_pathAddress, m_dllName.c_str());
+    strcpy((char*)m_pathAddress, m_soName.c_str());
 
     std::ostringstream memoryWrittenMessage;
-    memoryWrittenMessage << "DLL path written to process memory: " << m_dllName;
+    memoryWrittenMessage << "DLL path written to process memory: " << m_soName;
 
     return {true, memoryAllocatedMessage.str() + "\n" + memoryWrittenMessage.str()};
 }
@@ -154,7 +157,7 @@ Result LinInject::GetDlopenAddress()
 Result LinInject::InjectSharedLibrary()
 {
     std::ostringstream command;
-    command << "LD_PRELOAD=" << m_dllName << " ";
+    command << "LD_PRELOAD=" << m_soName << " ";
     command << "/proc/" << m_targetProcess << "/exe";
 
     if (system(command.str().c_str()) == -1)

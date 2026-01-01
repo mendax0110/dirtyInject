@@ -6,6 +6,7 @@
 #include <cstdlib>
 
 #if defined(__linux__)
+#include <limits.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
