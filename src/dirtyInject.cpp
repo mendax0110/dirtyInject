@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    injector.PrintResults(results);
+    MacInject::PrintResults(results);
 
     std::cout << "DLL injected successfully" << std::endl;
     return 0;

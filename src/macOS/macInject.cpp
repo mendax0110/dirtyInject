@@ -90,18 +90,18 @@ Result MacInject::FindProcessId(const char* processName, pid_t& processId)
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
     size_t size;
 
-    if (sysctl(mib, 4, NULL, &size, NULL, 0) == -1)
+    if (sysctl(mib, 4, nullptr, &size, nullptr, 0) == -1)
     {
         return { false, "Failed to get the size of the process list: " + std::string(strerror(errno)) };
     }
 
-    struct kinfo_proc* procList = (struct kinfo_proc*)malloc(size);
+    auto* procList = (struct kinfo_proc*)malloc(size);
     if (procList == nullptr)
     {
         return { false, "Failed to allocate memory for the process list" };
     }
 
-    if (sysctl(mib, 4, procList, &size, NULL, 0) == -1)
+    if (sysctl(mib, 4, procList, &size, nullptr, 0) == -1)
     {
         free(procList);
         return { false, "Failed to get the process list: " + std::string(strerror(errno)) };
@@ -138,7 +138,18 @@ Result MacInject::OpenProcessHandle(pid_t processId)
     kern_return_t kr = task_for_pid(mach_task_self(), processId, &m_targetTask);
     if (kr != KERN_SUCCESS)
     {
-        return { false, "Failed to get task for PID: " + std::to_string(processId) };
+        std::string msg = "Failed to get task for PID: " + std::to_string(processId)
+                          + " (mach error: " + std::string(mach_error_string(kr))
+                          + ", code: " + std::to_string(kr) + ")";
+        if (geteuid() != 0)
+        {
+            msg += " - try running as root";
+        }
+        else
+        {
+            msg += " - may be blocked by SIP/entitlements/codesign restrictions";
+        }
+        return { false, msg };
     }
 
     return { true, "Opened process handle successfully" };

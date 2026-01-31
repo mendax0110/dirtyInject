@@ -18,3 +18,6 @@ cmake-build-debug
 
 # Ignore the .idea Folder
 .idea
+
+# Ignore .DS_Store Files
+.DS_Store

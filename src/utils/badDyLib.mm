@@ -14,7 +14,7 @@
  * @param arg -> void*
  * @return void* -> nullptr
  */
-void* CreateSimpleWindow(void* arg)
+void* CreateSimpleWindow()
 {
     @autoreleasepool
     {
@@ -42,7 +42,7 @@ void* CreateSimpleWindow(void* arg)
  */
 void LaunchCalculator()
 {
-    //system(open -a Calculator);
+    system("open -a Calculator");
 }
 
 /**
@@ -51,7 +51,7 @@ void LaunchCalculator()
 __attribute__((constructor))
 void DllMain()
 {
-    pthread_t thread;
+    /*pthread_t thread;
     if (pthread_create(&thread, nullptr, CreateSimpleWindow, nullptr) != 0)
     {
         std::cerr << "Failed to create thread" << std::endl;
@@ -59,7 +59,12 @@ void DllMain()
     else
     {
         pthread_detach(thread);
-    }
+    }*/
+
+    dispatch_async(dispatch_get_main_queue(), ^
+    {
+        CreateSimpleWindow();
+    });
 
     LaunchCalculator();
 }
