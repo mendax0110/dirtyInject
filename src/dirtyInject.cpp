@@ -47,7 +47,13 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    MacInject::PrintResults(results);
+#if defined(_WIN32) || defined(_WIN64)
+     injector.PrintResults(results);
+#elif defined(__linux__)
+     injector.PrintResults(results);
+#elif defined(__APPLE__)
+     MacInject::PrintResults(results);
+#endif
 
     std::cout << "DLL injected successfully" << std::endl;
     return 0;
